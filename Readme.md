@@ -16,17 +16,20 @@ mini-model-builder/
 │   ├── zip_handler.py
 │   ├── builder.py           ← CORE BUILD LOGIC
 │   └── __init__.py
-├── sample_model.zip
+├── .gitignore
 └── README.md
 ```
+
+**Note:** Model ZIP files are inputs, not project assets. Store them externally (e.g., `~/model_uploads/`).
 
 ## Usage
 
 ### Build an Image
 
 ```bash
+# ZIP files should be stored outside the repository
 python build.py \
-  --zip sample_model.zip \
+  --zip ~/model_uploads/sample_model.zip \
   --tag my-model:v1
 ```
 
@@ -58,8 +61,10 @@ docker run --rm my-model:v1 python /app/inference.py
 - Python 3.10+
 - `docker` Python package
 
-## What's Inside sample_model.zip
+## Example ZIP Contents
+
+Your model ZIP should contain:
 
 - `inference.py` - Model inference script
 - `model.joblib` - Trained model artifact
-- `requirements.txt` - Python dependencies
+- `requirements.txt` - Python dependencies (will be auto-installed during build)

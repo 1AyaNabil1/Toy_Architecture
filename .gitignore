@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Model artifacts (these should be in ZIPs, not in repo)
+*.joblib
+*.pkl
+*.h5
+*.onnx
+*.pt
+*.pth
+
+# ZIP files (inputs, not project assets)
+*.zip
+
+# macOS
+.DS_Store
+__MACOSX/
+
+# Temporary files
+*.tmp
+*.log
+temp/
+tmp/
+
+# Docker
+.dockerignore
+
+# Notes
+note.md

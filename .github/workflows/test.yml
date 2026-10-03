@@ -1,0 +1,77 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: pytest
+
+  docker-build:
+    # End to end: build the sample model into a real image with the Docker
+    # Engine on the runner, then run the image and check its output.
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+
+      - name: Zip the sample model
+        run: python -m zipfile -c sample_model.zip examples/sample_model
+
+      - name: Build the image
+        run: python build.py --zip sample_model.zip --tag mmb-sample:ci
+
+      - name: Default command runs the model
+        run: |
+          out=$(docker run --rm mmb-sample:ci)
+          echo "$out"
+          test "$out" = '{"predictions": [10.0]}'
+
+      - name: Custom input
+        run: |
+          out=$(docker run --rm mmb-sample:ci python inference.py '[[2, 3, 4, 5]]')
+          echo "$out"
+          test "$out" = '{"predictions": [20.0]}'
+
+      - name: Image records the SHA-256 of its source ZIP
+        run: |
+          label=$(docker inspect --format '{{ index .Config.Labels "mini-model-builder.source.sha256" }}' mmb-sample:ci)
+          expected=$(sha256sum sample_model.zip | cut -d' ' -f1)
+          echo "label=$label expected=$expected"
+          test "$label" = "$expected"
+
+      - name: No build containers are left behind
+        run: |
+          leftover=$(docker ps -aq --filter ancestor=python:3.12-slim)
+          test -z "$leftover"
+
+      - name: A ZIP with path traversal is rejected
+        run: |
+          python -c "import zipfile; zipfile.ZipFile('evil.zip', 'w').writestr('../../etc/cron.d/evil', 'x')"
+          if python build.py --zip evil.zip --tag mmb-evil:ci; then
+            echo "unsafe ZIP was accepted"; exit 1
+          fi
